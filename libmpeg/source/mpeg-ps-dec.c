@@ -153,7 +153,7 @@ static int ps_demuxer_packet(struct ps_demuxer_t *ps, const uint8_t* data, size_
 #if defined(MPEG_LIVING_VIDEO_FRAME_DEMUX)
     // video packet size > 0xFFFF, split by pts/dts
     if (PES_SID_VIDEO == pes->sid
-        && PSI_STREAM_H264 != pes->codecid && PSI_STREAM_H265 != pes->codecid
+        && PSI_STREAM_H264 != pes->codecid && PSI_STREAM_H265 != pes->codecid && PSI_STREAM_H266 != pes->codecid
         && (pes->pkt.size > 0 || pes->len + pes->PES_header_data_length + 3 == 0xFFFF))
         pes->len = 0;
 #endif
@@ -233,7 +233,12 @@ static int ps_demuxer_header(struct ps_demuxer_t* ps, struct mpeg_bits_t* reader
         default:
             pes = psm_fetch(&ps->psm, v8);
             if (NULL == pes)
+            {
+                // skip PES
+                mpeg_bits_skip(reader, mpeg_bits_read16(reader));
+                r = mpeg_bits_error(reader) ? MPEG_ERROR_NEED_MORE_DATA : MPEG_ERROR_OK;
                 continue;
+            }   
 
             pes->sid = v8;
             r = ps->pkhd.mpeg2 ? pes_read_header(pes, reader) : pes_read_mpeg1_header(pes, reader);
